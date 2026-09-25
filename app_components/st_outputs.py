@@ -253,49 +253,74 @@ def create_capacity_chart(datacenter_demand: float, solar_pv_capacity: float,
     return fig
 
 def display_daily_sample_chart(daily_sample: pl.DataFrame) -> None:
-    """Display a daily sample chart showing solar generation over time."""
+    """Display an interactive chart for the selected worst solar week."""
     daily_sample_pd = daily_sample.set_index('time_local')
-    
+    hours = list(range(len(daily_sample_pd)))
+    tick_positions = list(range(0, len(daily_sample_pd), 24))
+    tick_labels = [
+        daily_sample_pd.index[position].strftime("%b %d").replace(" 0", " ")
+        for position in tick_positions
+    ]
+    hover_times = daily_sample_pd.index.strftime("%Y-%m-%d %H:%M")
+
     fig = go.Figure(data=[
         go.Scatter(
-            x=daily_sample_pd.index,
+            x=hours,
             y=daily_sample_pd['scaled_solar_generation_mw'],
             mode='lines',
             name='Solar Generation (AC)',
             line=dict(color=SOLAR_COLOR, width=2),
-            hovertemplate='%{y:.1f} MW<extra></extra>'
+            customdata=hover_times,
+            hovertemplate='%{customdata}<br>%{y:.1f} MW<extra></extra>'
         ),
         go.Scatter(
-            x=daily_sample_pd.index,
+            x=hours,
             y=daily_sample_pd['battery_discharge_mwh'] - daily_sample_pd['battery_charge_mwh'],
             mode='lines',
             name='Battery',
             line=dict(color=BESS_COLOR, width=2),
-            hovertemplate='%{y:.1f} MW<extra></extra>'
+            customdata=hover_times,
+            hovertemplate='%{customdata}<br>%{y:.1f} MW<extra></extra>'
         ),
         go.Scatter(
-            x=daily_sample_pd.index,
+            x=hours,
             y=daily_sample_pd['generator_output_mwh'],
             mode='lines',
             name='Generator Output',
             line=dict(color=GENERATOR_COLOR, width=2),
-            hovertemplate='%{y:.1f} MW<extra></extra>'
+            customdata=hover_times,
+            hovertemplate='%{customdata}<br>%{y:.1f} MW<extra></extra>'
         ),
         go.Scatter(
-            x=daily_sample_pd.index,
+            x=hours,
             y=daily_sample_pd['load_served_mwh'],
             mode='lines',
             name='Data Center Load',
             line=dict(color=DATACENTER_COLOR, width=2),
-            hovertemplate='%{y:.1f} MW<extra></extra>'
+            customdata=hover_times,
+            hovertemplate='%{customdata}<br>%{y:.1f} MW<extra></extra>'
         )
     ])
     
     fig.update_layout(
+        title=dict(
+            text='Worst solar-generation week',
+            font=dict(size=14),
+        ),
         height=360,
-        margin=dict(t=30, b=50, l=0, r=0),
-        xaxis_title='Hours',
+        margin=dict(t=55, b=50, l=0, r=0),
+        xaxis=dict(
+            title='Hours',
+            tickmode='array',
+            tickvals=tick_positions,
+            ticktext=tick_labels,
+            fixedrange=False,
+        ),
         yaxis_title='Power (MW)',
+        dragmode='zoom',
+        hovermode='x unified',
+        uirevision='power-flow-worst-week',
+        yaxis=dict(fixedrange=False),
         legend=dict(
             orientation="h",
             yanchor="top",
@@ -307,8 +332,17 @@ def display_daily_sample_chart(daily_sample: pl.DataFrame) -> None:
         ),
         showlegend=True
     )
-    
-    st.plotly_chart(fig, use_container_width=True)
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={
+            "displayModeBar": True,
+            "displaylogo": False,
+            "scrollZoom": True,
+            "responsive": True,
+        },
+    )
 
 def format_proforma(proforma: pd.DataFrame) -> pd.DataFrame:
     """Format proforma with years as columns and metrics as rows."""
@@ -580,4 +614,4 @@ def create_subcategory_capex_charts(capex_subtotals: Dict[str, Dict[str, float]]
         )
 
         # Display the chart
-        st.plotly_chart(fig, use_container_width=True) 
+        st.plotly_chart(fig, use_container_width=True)

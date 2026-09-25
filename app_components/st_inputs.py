@@ -227,36 +227,70 @@ def create_system_inputs() -> Dict:
     }
 
 def create_map_input() -> Dict:
+    """Collect coordinates and display a non-interactive visual location guide.
+
+    Coordinates are entered explicitly.  The map is intentionally configured as
+    a visual reference only: it has no coordinate-selection callback and all
+    panning/zooming controls are disabled.
+    """
     st.subheader("Location")
-    st.write("Center the map on your data center location.")
-    
-    if 'map_initial_load' not in st.session_state:
-        st.session_state.map_initial_load = True
-        query_params = st.query_params
-        st.session_state.initial_lat = float(query_params.get("lat", MAP_INITIAL_LAT))
-        st.session_state.initial_long = float(query_params.get("long", MAP_INITIAL_LONG))
-    
-    map = folium.Map(
-        [st.session_state.initial_lat, st.session_state.initial_long],
-        zoom_start=5,
-        tiles="CartoDB Positron"
-    )
+    st.write("Enter the coordinates to evaluate. The map is a visual guide only.")
 
-    def update_map_params():
-        pass
-        # st.query_params["lat"] = st.session_state['folium_map']['center']['lat']
-        # st.query_params["long"] = st.session_state['folium_map']['center']['lng']
+    query_params = st.query_params
 
-    st_folium(map, height=370, use_container_width=True, key="folium_map", on_change=update_map_params)
+    def update_location_param(key: str):
+        st.query_params[key] = st.session_state[key]
 
-    # st.session_state['folium_map'] is only populated after the map has loaded
-    try:
-        lat_long_tuple = (st.session_state['folium_map']['center']['lat'], st.session_state['folium_map']['center']['lng'])
-    except KeyError:
-        lat_long_tuple = (st.session_state.initial_lat, st.session_state.initial_long)
+    lat_col, long_col = st.columns(2)
+    with lat_col:
+        latitude = st.number_input(
+            "Latitude (°)",
+            value=float(query_params.get("lat", MAP_INITIAL_LAT)),
+            min_value=-90.0,
+            max_value=90.0,
+            step=0.01,
+            format="%.5f",
+            key="lat",
+            on_change=update_location_param,
+            args=("lat",)
+        )
+    with long_col:
+        longitude = st.number_input(
+            "Longitude (°)",
+            value=float(query_params.get("long", MAP_INITIAL_LONG)),
+            min_value=-180.0,
+            max_value=180.0,
+            step=0.01,
+            format="%.5f",
+            key="long",
+            on_change=update_location_param,
+            args=("long",)
+        )
 
+    lat_long_tuple = (latitude, longitude)
     rg_result = rg.search(lat_long_tuple, mode=1)[0]
-    return (*lat_long_tuple, f"{rg_result['name']}, {rg_result['admin1']} ({rg_result['cc']})")
+    location_name = f"{rg_result['name']}, {rg_result['admin1']} ({rg_result['cc']})"
+    st.caption(f"Selected location: {location_name}")
+
+    location_map = folium.Map(
+        [latitude, longitude],
+        zoom_start=5,
+        tiles="CartoDB Positron",
+        zoom_control=False,
+        dragging=False,
+        scrollWheelZoom=False,
+        doubleClickZoom=False,
+        boxZoom=False,
+        keyboard=False,
+        touchZoom=False,
+    )
+    folium.Marker(
+        [latitude, longitude],
+        tooltip=f"{latitude:.5f}, {longitude:.5f}",
+    ).add_to(location_map)
+    st_folium(location_map, height=370, use_container_width=True, key="location_map")
+
+    return latitude, longitude, location_name
 
 
 def create_financial_inputs(generator_type: str) -> Dict:
@@ -269,7 +303,7 @@ def create_financial_inputs(generator_type: str) -> Dict:
         st.query_params[key] = st.session_state[key]
     
     # Financial Inputs
-    with st.expander("Capital Structure"):
+    with st.expander("Capital Structure", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
             cost_of_debt = st.number_input(
@@ -363,7 +397,7 @@ def create_financial_inputs(generator_type: str) -> Dict:
             st.session_state.depreciation_schedule = edited_depreciation
     
     # CAPEX Inputs
-    with st.expander("CAPEX Costs"):
+    with st.expander("CAPEX Costs", expanded=True):
         # Solar PV
         st.subheader("Solar PV")
         col1, col2 = st.columns(2)
@@ -564,7 +598,7 @@ def create_financial_inputs(generator_type: str) -> Dict:
             )
     
     # O&M Inputs
-    with st.expander("O&M Rates"):
+    with st.expander("O&M Rates", expanded=True):
         col1, col2 = st.columns(2)
         
         # Column 1: Asset-specific O&M
@@ -691,4 +725,4 @@ def create_financial_inputs(generator_type: str) -> Dict:
         'capex_soft_costs_startup': soft_costs_startup,
         'capex_soft_costs_insurance': soft_costs_insurance,
         'capex_soft_costs_taxes': soft_costs_taxes
-    } 
+    }

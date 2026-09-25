@@ -244,6 +244,56 @@ def scale_solar_generation(
     return df
 
 
+def select_worst_solar_week(result_df: pd.DataFrame, week_days: int = 7) -> pd.DataFrame:
+    """Return the consecutive week with the lowest solar generation.
+
+    The solar profile is grouped by local month/day and evaluated with a
+    rolling seven-day window in the source row order. PVGIS TMY data is a
+    synthetic meteorological year whose source timestamps can come from
+    different calendar years, so sorting those timestamps globally would not
+    preserve the actual profile sequence. Grouping by month/day also keeps the
+    few hours around the synthetic year boundary in the same local day. The
+    profile is treated as circular so a week spanning the end and beginning of
+    the meteorological year is eligible too.
+    """
+    if week_days < 1:
+        raise ValueError("week_days must be at least 1")
+
+    sample = result_df.copy()
+    sample["_row_order"] = np.arange(len(sample))
+    sample["_local_day"] = sample["time_local"].dt.strftime("%m-%d")
+    daily_solar = (
+        sample.groupby("_local_day", sort=False)["scaled_solar_generation_mw"]
+        .sum()
+    )
+
+    if len(daily_solar) <= week_days:
+        return sample.drop(columns=["_row_order", "_local_day"]).reset_index(drop=True)
+
+    dates = list(daily_solar.index)
+    daily_values = daily_solar.to_numpy()
+    extended_values = np.concatenate([daily_values, daily_values[:week_days - 1]])
+    window_totals = np.convolve(
+        extended_values,
+        np.ones(week_days),
+        mode="valid",
+    )[:len(daily_values)]
+    start_index = int(np.argmin(window_totals))
+
+    selected_dates = [
+        dates[(start_index + offset) % len(dates)]
+        for offset in range(week_days)
+    ]
+    date_order = {date: offset for offset, date in enumerate(selected_dates)}
+
+    worst_week = sample[sample["_local_day"].isin(selected_dates)].copy()
+    worst_week["_week_order"] = worst_week["_local_day"].map(date_order)
+    worst_week = worst_week.sort_values(["_week_order", "_row_order"])
+    return worst_week.drop(
+        columns=["_row_order", "_local_day", "_week_order"]
+    ).reset_index(drop=True)
+
+
 @st_conditional_cache
 def simulate_system(
     latitude: float,
@@ -303,19 +353,9 @@ def simulate_system(
             data_center_demand_mw,
             operating_year,
         )
-        # Get sample week of data for dashboard
+        # Get the lowest-solar week of data for the dashboard.
         if operating_year == 1:
-            # First get all days 182-188 (roughly July 1-7)
-            sample_days_df = result_df[result_df['time_local'].dt.dayofyear.isin(range(182, 189))]
-            
-            # Count number of hours in each year for these days
-            year_counts = sample_days_df.groupby(sample_days_df['time_local'].dt.year).size()
-            # Get the year with the most data points (in case of partial years)
-            best_year = year_counts.idxmax()
-            
-            # Take the data from the year with most complete data
-            sample_week_df = sample_days_df[sample_days_df['time_local'].dt.year == best_year]
-            sample_week_df = sample_week_df.reset_index(drop=True)
+            sample_week_df = select_worst_solar_week(result_df)
         
         solar_mwh_raw_tot = result_df["scaled_solar_generation_mw"].sum()
         solar_mwh_curtailed_tot = result_df["curtailed_solar_mwh"].sum()

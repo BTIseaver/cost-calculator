@@ -70,7 +70,7 @@ DEFAULTS_SOFT_COSTS_CAPEX = {
     'permitting': 0.05,
     'startup': 0.25,
     'insurance': 0.50,
-    'taxes': 5.00
+    'taxes': 0.00
 }
 
 DEFAULTS_OM = {
@@ -88,8 +88,8 @@ DEFAULTS_FINANCIAL = {
     'leverage_pct': 70.0,
     'debt_term_years': 20,
     'cost_of_equity_pct': 11.0,
-    'investment_tax_credit_pct': 30.0,
-    'combined_tax_rate_pct': 21.0,
+    'investment_tax_credit_pct': 0.0,
+    'combined_tax_rate_pct': 0.0,
     'construction_time_years': 2
 }
 
@@ -115,4 +115,4 @@ DEFAULTS_DEPRECIATION_SCHEDULE = [
     0.0,
     0.0,
     0.0
-] 
+]

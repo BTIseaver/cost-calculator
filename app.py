@@ -32,28 +32,45 @@ def display_energy_mix(energy_mix: Dict[str, float]) -> None:
 def main():
     """Main application."""
     display_intro_section()
-    
+
+    run_calculation = st.button(
+        "Run calculation",
+        type="primary",
+        help="Fetch solar data and run the power-flow and financial calculations for the current inputs.",
+    )
+    st.caption("Change any inputs, then press Run calculation to refresh the results.")
+
     inputs = create_system_inputs()
 
-    map_col, graph_col = st.columns([2,2], gap="medium")
+    location_col, financial_col = st.columns([1, 1], gap="medium")
 
-    with map_col:
+    with location_col:
         lat, long, location_name = create_map_input()
         inputs.update({'lat': lat, 'long': long})
 
-        calc_status_display = st.empty()
+    with financial_col:
+        financial_inputs = create_financial_inputs(inputs['generator_type'])
+        inputs.update(financial_inputs)
 
-        st.session_state.calculation_status = f"Selected ({round(lat, 1)}, {round(long, 1)}) in {location_name}\nFetching weather data..."
+    if run_calculation:
+        calc_status_display = st.empty()
+        st.session_state.calculation_status = (
+            f"Selected ({round(lat, 1)}, {round(long, 1)}) in {location_name}\n"
+            "Fetching weather data..."
+        )
         calc_status_display.code(st.session_state.calculation_status, language="")
 
-        # Fetch weather data
+        # Fetch weather data only after the user explicitly presses Run calculation.
         t1 = time.time()
         solar_ac_dataframe = get_solar_ac_dataframe(lat, long)
-        st.session_state.calculation_status += f"\nWeather data fetched in {time.time()-t1:.2f} seconds"
+        st.session_state.calculation_status += (
+            f"\nWeather data fetched in {time.time()-t1:.2f} seconds"
+        )
         calc_status_display.code(st.session_state.calculation_status)
 
-        # Simulate solar and battery power flow
-        st.session_state.calculation_status += "\nSimulating solar and battery power flow..."
+        st.session_state.calculation_status += (
+            "\nSimulating solar and battery power flow..."
+        )
         calc_status_display.code(st.session_state.calculation_status)
 
         t1 = time.time()
@@ -66,81 +83,83 @@ def main():
             inputs['generator_capacity_mw'],
             inputs['datacenter_load_mw'],
         )
-        st.session_state.calculation_status += f"\nPowerflow simulation ran in {time.time()-t1:.2f} seconds"
+        st.session_state.calculation_status += (
+            f"\nPowerflow simulation ran in {time.time()-t1:.2f} seconds"
+        )
         calc_status_display.code(st.session_state.calculation_status)
         annual_powerflow_results = powerflow_results['annual_results']
         daily_powerflow_results = powerflow_results['daily_sample']
+        capex_subtotals = calculate_capex_subtotals(inputs)
 
-    with graph_col:
-        # Display power flow sample week
-        st.subheader("Power Flow (sample week)")
-        display_daily_sample_chart(daily_powerflow_results)
+        # Create the DataCenter instance to simulate LCOE.
+        try:
+            data_center = DataCenter(
+                solar_pv_capacity_mw=inputs['solar_pv_capacity_mw'],
+                bess_max_power_mw=inputs['bess_max_power_mw'],
+                generator_capacity_mw=inputs['generator_capacity_mw'],
+                generator_type=inputs['generator_type'],
+                solar_capex_total_dollar_per_w=capex_subtotals['solar']['rate'],
+                bess_capex_total_dollar_per_kwh=capex_subtotals['bess']['rate'],
+                generator_capex_total_dollar_per_kw=capex_subtotals['generator']['rate'],
+                system_integration_capex_total_dollar_per_kw=capex_subtotals['system_integration']['rate'],
+                soft_costs_capex_total_pct=capex_subtotals['soft_costs']['rate'],
+                om_solar_fixed_dollar_per_kw=inputs['solar_om_fixed_dollar_per_kw'],
+                om_bess_fixed_dollar_per_kw=inputs['bess_om_fixed_dollar_per_kw'],
+                om_generator_fixed_dollar_per_kw=inputs['generator_om_fixed_dollar_per_kw'],
+                om_generator_variable_dollar_per_kwh=inputs['generator_om_variable_dollar_per_kwh'],
+                fuel_price_dollar_per_mmbtu=inputs['fuel_price_dollar_per_mmbtu'],
+                fuel_escalator_pct=inputs['fuel_escalator_pct'],
+                om_bos_fixed_dollar_per_kw_load=inputs['bos_om_fixed_dollar_per_kw_load'],
+                om_soft_pct=inputs['soft_om_pct'],
+                om_escalator_pct=inputs['om_escalator_pct'],
+                debt_term_years=inputs['debt_term_years'],
+                leverage_pct=inputs['leverage_pct'],
+                cost_of_debt_pct=inputs['cost_of_debt_pct'],
+                cost_of_equity_pct=inputs['cost_of_equity_pct'],
+                combined_tax_rate_pct=inputs['combined_tax_rate_pct'],
+                investment_tax_credit_pct=inputs['investment_tax_credit_pct'],
+                depreciation_schedule=inputs['depreciation_schedule'],
+                filtered_simulation_data=annual_powerflow_results
+            )
+        except ValueError as e:
+            st.error(str(e))
+            st.stop()
 
-        # Display energy mix
-        energy_mix = calculate_energy_mix(annual_powerflow_results)
-        display_energy_mix(energy_mix)
+        lcoe, pro_forma = data_center.calculate_lcoe()
+        st.session_state.calculation_results = {
+            "daily_powerflow_results": daily_powerflow_results,
+            "energy_mix": calculate_energy_mix(annual_powerflow_results),
+            "capex_subtotals": capex_subtotals,
+            "lcoe": lcoe,
+            "formatted_proforma": format_proforma(pro_forma),
+        }
+    elif "calculation_results" not in st.session_state:
+        st.info("Set the inputs above, then press Run calculation to fetch data and evaluate the system.")
+        return
+    else:
+        st.warning("Showing the last completed calculation. Press Run calculation to refresh the results for the current inputs.")
+
+    calculation_results = st.session_state.calculation_results
 
     st.divider()
 
-    # Financial inputs
-    financial_col, capex_col = st.columns([2, 2], gap="medium")
+    # Display the interactive worst-week power flow and energy mix.
+    graph_col, energy_mix_col = st.columns([2, 2], gap="medium")
+    with graph_col:
+        st.subheader("Power Flow (Worst Week)")
+        display_daily_sample_chart(calculation_results["daily_powerflow_results"])
 
-    with financial_col:
-        financial_inputs = create_financial_inputs(inputs['generator_type'])
-        inputs.update(financial_inputs)
+    with energy_mix_col:
+        display_energy_mix(calculation_results["energy_mix"])
 
-    with capex_col:
-        # Calculate CAPEX subtotals for each system component
-        capex_subtotals = calculate_capex_subtotals(inputs)
-        # display_capex_breakdown(capex_subtotals)
-        display_capex_breakdown(capex_subtotals)
+    st.divider()
+    display_capex_breakdown(calculation_results["capex_subtotals"])
 
-    # Now create the DataCenter instance to simulate LCOE
-    try:
-        # Create DataCenter instance (this will also load and filter simulation data)
-        data_center = DataCenter(
-            solar_pv_capacity_mw=inputs['solar_pv_capacity_mw'],
-            bess_max_power_mw=inputs['bess_max_power_mw'],
-            generator_capacity_mw=inputs['generator_capacity_mw'],
-            generator_type=inputs['generator_type'],
-            solar_capex_total_dollar_per_w=capex_subtotals['solar']['rate'],
-            bess_capex_total_dollar_per_kwh=capex_subtotals['bess']['rate'],
-            generator_capex_total_dollar_per_kw=capex_subtotals['generator']['rate'],
-            system_integration_capex_total_dollar_per_kw=capex_subtotals['system_integration']['rate'],
-            soft_costs_capex_total_pct=capex_subtotals['soft_costs']['rate'],
-            om_solar_fixed_dollar_per_kw=inputs['solar_om_fixed_dollar_per_kw'],
-            om_bess_fixed_dollar_per_kw=inputs['bess_om_fixed_dollar_per_kw'],
-            om_generator_fixed_dollar_per_kw=inputs['generator_om_fixed_dollar_per_kw'],
-            om_generator_variable_dollar_per_kwh=inputs['generator_om_variable_dollar_per_kwh'],
-            fuel_price_dollar_per_mmbtu=inputs['fuel_price_dollar_per_mmbtu'],
-            fuel_escalator_pct=inputs['fuel_escalator_pct'],
-            om_bos_fixed_dollar_per_kw_load=inputs['bos_om_fixed_dollar_per_kw_load'],
-            om_soft_pct=inputs['soft_om_pct'],
-            om_escalator_pct=inputs['om_escalator_pct'],
-            debt_term_years=inputs['debt_term_years'],
-            leverage_pct=inputs['leverage_pct'],
-            cost_of_debt_pct=inputs['cost_of_debt_pct'],
-            cost_of_equity_pct=inputs['cost_of_equity_pct'],
-            combined_tax_rate_pct=inputs['combined_tax_rate_pct'],
-            investment_tax_credit_pct=inputs['investment_tax_credit_pct'],
-            depreciation_schedule=inputs['depreciation_schedule'],
-            filtered_simulation_data=annual_powerflow_results
-        )
-    except ValueError as e:
-        st.error(str(e))
-        st.stop()
-    
-
-    # Calculate LCOE
-    lcoe, pro_forma = data_center.calculate_lcoe()
-    
-    # Display LCOE  
     st.subheader("Levelized Cost of Electricity")
-    st.metric("Calculated LCOE", f"${lcoe:.2f}/MWh")
-    
+    st.metric("Calculated LCOE", f"${calculation_results['lcoe']:.2f}/MWh")
+
     st.subheader("Financial Model")
-    formatted_proforma = format_proforma(pro_forma)
-    display_proforma(formatted_proforma)
+    display_proforma(calculation_results["formatted_proforma"])
 
     
 if __name__ == "__main__":

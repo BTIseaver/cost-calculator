@@ -16,7 +16,7 @@ DEFAULTS_GENERATORS = {
     'Gas Engine': {
         'capex': {
             'gensets': 800,
-            'balance_of_system': 200,
+            'balance_of_system': 0,
             'labor': 0
         },
         'opex': {
@@ -27,7 +27,7 @@ DEFAULTS_GENERATORS = {
     'Gas Turbine': {
         'capex': {
             'gensets': 635,
-            'balance_of_system': 150,
+            'balance_of_system': 0,
             'labor': 0
         },
         'opex': {
@@ -51,7 +51,7 @@ DEFAULTS_SOLAR_CAPEX = {
 # BESS CAPEX defaults ($/kWh)
 DEFAULTS_BESS_CAPEX = {
     'units': 200,
-    'balance_of_system': 40,
+    'balance_of_system': 0,
     'labor': 0
 }
 

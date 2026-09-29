@@ -76,8 +76,16 @@ def display_intro_section():
     """, unsafe_allow_html=True)
     st.title("Solar datacenter cost calculator", anchor="solar-datacenter-cost-calculator")
     st.markdown(
-        '<p style="font-size: 1em; margin-bottom: 20px;">By <a href="https://benjames.io">Ben James</a> and the <a href="https://offgridai.us">offgridai.us</a> team</p>',
+        '<p style="font-size: 1em; margin-bottom: 20px;">Adapted by Seaver Wang, originally produced by <a href="https://benjames.io">Ben James</a> and the <a href="https://offgridai.us">offgrid.us</a> team</p>',
         unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """Seaver's changes:
+
+        - Map tool optimized, manual coordinate entry added
+        - Default assumptions simplified (debt financing only, no taxes or incentives, CAPEX subcategories zeroed by default)
+        """
     )
     
     st.markdown(

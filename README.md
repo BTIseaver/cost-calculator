@@ -21,8 +21,9 @@ methodology while adding a few workflow improvements:
 * Calculations run only after pressing **Run calculation**. Changing an input
   does not trigger a new weather fetch or simulation; after a completed run,
   the app labels results as stale until the button is pressed again.
-* Latitude and longitude are entered directly. The Folium map is a visual
-  guide only and cannot be dragged to select a location.
+* Latitude and longitude are entered directly. The location preview uses
+  Plotly's built-in political boundaries as a static visual guide; it does not
+  use map tiles or allow the map to select coordinates.
 * The power-flow chart shows the consecutive seven-day period with the lowest
   solar generation and exposes Plotly pan, zoom, reset, and scroll interactions.
 * Capital Structure, CAPEX Costs, and O&M Rates are expanded by default.

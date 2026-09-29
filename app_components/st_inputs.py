@@ -3,8 +3,7 @@
 import streamlit as st
 import pandas as pd
 from typing import Dict
-from streamlit_folium import st_folium
-import folium
+import plotly.graph_objects as go
 
 from app_components.st_outputs import create_capacity_chart
 from core.defaults import (
@@ -230,8 +229,9 @@ def create_map_input() -> Dict:
     """Collect coordinates and display a non-interactive visual location guide.
 
     Coordinates are entered explicitly.  The map is intentionally configured as
-    a visual reference only: it has no coordinate-selection callback and all
-    panning/zooming controls are disabled.
+    a visual reference only: it has no coordinate-selection callback, uses
+    Plotly's built-in political boundaries instead of map tiles, and is rendered
+    as a static chart.
     """
     st.subheader("Location")
     st.write("Enter the coordinates to evaluate. The map is a visual guide only.")
@@ -272,23 +272,65 @@ def create_map_input() -> Dict:
     location_name = f"{rg_result['name']}, {rg_result['admin1']} ({rg_result['cc']})"
     st.caption(f"Selected location: {location_name}")
 
-    location_map = folium.Map(
-        [latitude, longitude],
-        zoom_start=5,
-        tiles="CartoDB Positron",
-        zoom_control=False,
-        dragging=False,
-        scrollWheelZoom=False,
-        doubleClickZoom=False,
-        boxZoom=False,
-        keyboard=False,
-        touchZoom=False,
+    map_context = st.radio(
+        "Map context",
+        ["Regional context", "Global context"],
+        horizontal=True,
+        key="location_map_context",
+        label_visibility="collapsed",
     )
-    folium.Marker(
-        [latitude, longitude],
-        tooltip=f"{latitude:.5f}, {longitude:.5f}",
-    ).add_to(location_map)
-    st_folium(location_map, height=370, use_container_width=True, key="location_map")
+    regional_context = map_context == "Regional context"
+
+    location_map = go.Figure()
+    location_map.add_trace(
+        go.Scattergeo(
+            lon=[longitude],
+            lat=[latitude],
+            mode="markers+text",
+            text=[location_name],
+            textposition="top right",
+            textfont={"size": 11, "color": "#1e2b25"},
+            marker={
+                "size": 11,
+                "color": "#287b4f",
+                "line": {"width": 2, "color": "#ffffff"},
+            },
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
+    location_map.update_geos(
+        scope="world",
+        projection_type="natural earth",
+        projection_scale=4.5 if regional_context else 1,
+        center={"lat": latitude, "lon": longitude} if regional_context else None,
+        showland=True,
+        landcolor="#dce8df",
+        showocean=True,
+        oceancolor="#e8f1f4",
+        showcountries=True,
+        countrycolor="#95a89b",
+        countrywidth=0.6,
+        showcoastlines=True,
+        coastlinecolor="#95a89b",
+        coastlinewidth=0.6,
+        showlakes=True,
+        lakecolor="#e8f1f4",
+        showframe=False,
+        bgcolor="rgba(0,0,0,0)",
+    )
+    location_map.update_layout(
+        height=370,
+        margin={"l": 0, "r": 0, "t": 0, "b": 0},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+    )
+    st.plotly_chart(
+        location_map,
+        use_container_width=True,
+        config={"staticPlot": True, "displayModeBar": False, "scrollZoom": False},
+        key="location_map",
+    )
 
     return latitude, longitude, location_name
 

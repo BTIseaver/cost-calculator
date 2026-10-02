@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 
 from app_components.st_outputs import create_capacity_chart
 from core.defaults import (
-    BESS_HRS_STORAGE, DEFAULTS_GENERATORS, DEFAULTS_SOLAR_CAPEX, DEFAULTS_BESS_CAPEX,
+    BESS_HRS_STORAGE, DATACENTER_DEMAND_MW, DEFAULTS_GENERATORS, DEFAULTS_SOLAR_CAPEX, DEFAULTS_BESS_CAPEX,
     DEFAULTS_SYSTEM_INTEGRATION_CAPEX, DEFAULTS_SOFT_COSTS_CAPEX, DEFAULTS_OM, DEFAULTS_FINANCIAL,
     DEFAULTS_DEPRECIATION_SCHEDULE
 )
@@ -155,8 +155,8 @@ def create_system_inputs() -> Dict:
     
     with col1:
         datacenter_load = st.number_input(
-            "Data Center Demand (MW)",
-            value=int(query_params.get("dc_load", 100)),
+            "Industrial Load Demand (MW)",
+            value=int(query_params.get("dc_load", DATACENTER_DEMAND_MW)),
             min_value=0,
             max_value=1002,
             step=50,
@@ -168,9 +168,9 @@ def create_system_inputs() -> Dict:
     with col2:
         solar_pv_capacity = st.number_input(
             "Solar PV Capacity (MW DC)",
-            value=int(query_params.get("solar", 250)),
+            value=int(query_params.get("solar", 2500)),
             min_value=0,
-            max_value=5000,
+            max_value=10000,
             step=50,
             key="solar",
             on_change=update_param,
@@ -180,9 +180,9 @@ def create_system_inputs() -> Dict:
     with col3:
         bess_max_power = st.number_input(
             "BESS Power (MW), 4hr store",
-            value=int(query_params.get("bess", 150)),
+            value=int(query_params.get("bess", 2500)),
             min_value=0,
-            max_value=3000,
+            max_value=10000,
             step=50,
             key="bess",
             on_change=update_param,
@@ -192,7 +192,7 @@ def create_system_inputs() -> Dict:
     with col4:
         generator_capacity = st.number_input(
             "Generator Capacity (MW)",
-            value=int(query_params.get("gen", 100)),
+            value=int(query_params.get("gen", 1000)),
             min_value=0,
             max_value=1000,
             step=10,
@@ -204,7 +204,7 @@ def create_system_inputs() -> Dict:
         generator_type = st.selectbox(
             "Generator Type",
             ["Gas Engine", "Gas Turbine"],
-            index=0 if query_params.get("gen_type", "Gas Engine") == "Gas Engine" else 1,
+            index=0 if query_params.get("gen_type", "Gas Turbine") == "Gas Engine" else 1,
             key="gen_type",
             on_change=update_param,
             args=("gen_type",)

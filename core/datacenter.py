@@ -58,22 +58,22 @@ class DataCenter:
     generator_capacity_mw: int
     
     # System constants with defaults
-    generator_type: str = 'Gas Engine'
+    generator_type: str = 'Gas Turbine'
     datacenter_load_mw: int = DATACENTER_DEMAND_MW
     bess_hrs_storage: int = BESS_HRS_STORAGE
 
     # CAPEX rate subtotals
     solar_capex_total_dollar_per_w: float = sum(DEFAULTS_SOLAR_CAPEX.values())
     bess_capex_total_dollar_per_kwh: float = sum(DEFAULTS_BESS_CAPEX.values())
-    generator_capex_total_dollar_per_kw: float = sum(DEFAULTS_GENERATORS['Gas Engine']['capex'].values())
+    generator_capex_total_dollar_per_kw: float = sum(DEFAULTS_GENERATORS['Gas Turbine']['capex'].values())
     system_integration_capex_total_dollar_per_kw: float = sum(DEFAULTS_SYSTEM_INTEGRATION_CAPEX.values())
     soft_costs_capex_total_pct: float = sum(DEFAULTS_SOFT_COSTS_CAPEX.values())
     
     # O&M inputs
     fuel_price_dollar_per_mmbtu: float = DEFAULTS_OM['fuel_price_dollar_per_mmbtu']
     fuel_escalator_pct: float = DEFAULTS_OM['fuel_escalator_pct']
-    om_generator_fixed_dollar_per_kw: float = DEFAULTS_GENERATORS['Gas Engine']['opex']['fixed_om']
-    om_generator_variable_dollar_per_kwh: float = DEFAULTS_GENERATORS['Gas Engine']['opex']['variable_om']
+    om_generator_fixed_dollar_per_kw: float = DEFAULTS_GENERATORS['Gas Turbine']['opex']['fixed_om']
+    om_generator_variable_dollar_per_kwh: float = DEFAULTS_GENERATORS['Gas Turbine']['opex']['variable_om']
     om_solar_fixed_dollar_per_kw: float = DEFAULTS_OM['solar_fixed_dollar_per_kw']
     om_bess_fixed_dollar_per_kw: float = DEFAULTS_OM['bess_fixed_dollar_per_kw']
     om_bos_fixed_dollar_per_kw_load: float = DEFAULTS_OM['bos_fixed_dollar_per_kw_load']

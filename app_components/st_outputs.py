@@ -57,7 +57,7 @@ METRIC_UNITS = {
 }
 
 def display_intro_section():
-    st.set_page_config(layout="wide", page_title="Solar Data Center LCOE Calculator")
+    st.set_page_config(layout="wide", page_title="Solar Industrial Load LCOE Calculator")
     # Add custom CSS to reduce top padding
     st.markdown("""
         <style>
@@ -74,7 +74,7 @@ def display_intro_section():
             }
         </style>
     """, unsafe_allow_html=True)
-    st.title("Solar datacenter cost calculator", anchor="solar-datacenter-cost-calculator")
+    st.title("Solar industrial load cost calculator", anchor="solar-datacenter-cost-calculator")
     st.markdown(
         '<p style="font-size: 1em; margin-bottom: 20px;">Adapted by Seaver Wang, originally produced by <a href="https://benjames.io">Ben James</a> and the <a href="https://offgridai.us">offgrid.us</a> team</p>',
         unsafe_allow_html=True
@@ -85,12 +85,14 @@ def display_intro_section():
 
         - Map tool optimized, manual coordinate entry added
         - Default assumptions simplified (debt financing only, no taxes or incentives, CAPEX subcategories zeroed by default)
+        - Industrial load defaults: 500 MW load, 2,500 MW solar/BESS, 1,000 MW gas turbine
+        - Soft CAPEX, O&M, and fuel escalators set to zero; fuel price set to $8/MMBtu; solar/BESS limits raised to 10,000 MW
         """
     )
     
     st.markdown(
         """
-        This tool calculates the cost of electricity for a datacenter powered by solar, batteries, and gas generation.
+        This tool calculates the cost of electricity for an industrial load powered by solar, batteries, and gas generation.
         1. Input the generation mix, location, and financial assumptions
         2. Solar generation is fetched for the selected location, and solar/battery/generator powerflow is simulated
         3. The tool calculates the Levelised Cost of Energy (LCOE) of the system. It's designed to let you run scenarios across many designs and locations.
@@ -246,7 +248,7 @@ def create_capacity_chart(datacenter_demand: float, solar_pv_capacity: float,
     """Create a bar chart showing system capacity overview."""
     fig = go.Figure(data=[
         go.Bar(name='Capacity (MW)', 
-               x=['Data Center', 'Solar PV', 'BESS', 'Generator'],
+               x=['Industrial Load', 'Solar PV', 'BESS', 'Generator'],
                y=[datacenter_demand, solar_pv_capacity, bess_max_power, generator_capacity],
                text=[f'{int(val)} MW' for val in [datacenter_demand, solar_pv_capacity, bess_max_power, generator_capacity]],
                textposition='auto',
@@ -303,7 +305,7 @@ def display_daily_sample_chart(daily_sample: pl.DataFrame) -> None:
             x=hours,
             y=daily_sample_pd['load_served_mwh'],
             mode='lines',
-            name='Data Center Load',
+            name='Industrial Load',
             line=dict(color=DATACENTER_COLOR, width=2),
             customdata=hover_times,
             hovertemplate='%{customdata}<br>%{y:.1f} MW<extra></extra>'

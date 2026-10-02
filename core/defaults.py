@@ -2,7 +2,7 @@
 
 SIMULATION_DATA_PATH = 'data/powerflow_output_frozen.csv'
 
-DATACENTER_DEMAND_MW = 100
+DATACENTER_DEMAND_MW = 500
 BESS_HRS_STORAGE = 4
 
 # Generator heat rates
@@ -64,23 +64,23 @@ DEFAULTS_SYSTEM_INTEGRATION_CAPEX = {
 
 # Soft Costs defaults (%)
 DEFAULTS_SOFT_COSTS_CAPEX = {
-    'general_conditions': 0.50,
-    'epc_overhead': 5.00,
-    'design_engineering': 0.50,
-    'permitting': 0.05,
-    'startup': 0.25,
-    'insurance': 0.50,
+    'general_conditions': 0.00,
+    'epc_overhead': 0.00,
+    'design_engineering': 0.00,
+    'permitting': 0.00,
+    'startup': 0.00,
+    'insurance': 0.00,
     'taxes': 0.00
 }
 
 DEFAULTS_OM = {
-    'fuel_price_dollar_per_mmbtu': 5.00,
-    'fuel_escalator_pct': 3.00,
+    'fuel_price_dollar_per_mmbtu': 8.00,
+    'fuel_escalator_pct': 0.00,
     'solar_fixed_dollar_per_kw': 11,
     'bess_fixed_dollar_per_kw': 2.5,
     'bos_fixed_dollar_per_kw_load': 6.0,
     'soft_pct': 0.25,
-    'escalator_pct': 2.50
+    'escalator_pct': 0.00
 }
 
 DEFAULTS_FINANCIAL = {

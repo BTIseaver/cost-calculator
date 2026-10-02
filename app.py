@@ -98,6 +98,7 @@ def main():
                 bess_max_power_mw=inputs['bess_max_power_mw'],
                 generator_capacity_mw=inputs['generator_capacity_mw'],
                 generator_type=inputs['generator_type'],
+                datacenter_load_mw=inputs['datacenter_load_mw'],
                 solar_capex_total_dollar_per_w=capex_subtotals['solar']['rate'],
                 bess_capex_total_dollar_per_kwh=capex_subtotals['bess']['rate'],
                 generator_capex_total_dollar_per_kw=capex_subtotals['generator']['rate'],
